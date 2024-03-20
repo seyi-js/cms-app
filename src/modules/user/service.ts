@@ -1,4 +1,5 @@
 import sequelize from '../../db/connection';
+import redisClient from '../../redis';
 import { CustomError } from '../../utils';
 import { Post } from '../post/schema';
 import { IUser } from './interface';
@@ -43,6 +44,13 @@ export class UserService {
   }
 
   async performanceChallenge() {
+
+    const cachedData = await redisClient.get('performance_challenge');
+    if (cachedData) {
+
+      return JSON.parse(cachedData);
+    }
+
     const [results, _] = await sequelize?.query(
       `SELECT DISTINCT ON (u.id) u.id AS user_id, u.first_name, u.last_name, c.content AS latest_comment, c.created_at AS comment_created_at
 FROM (
@@ -58,6 +66,8 @@ JOIN posts p ON u.id = p.user_id
 LEFT JOIN comments c ON p.id = c.post_id AND c.created_at = top_users_comments.latest_comment_date
 ORDER BY u.id, top_users_comments.latest_comment_date DESC;`
     );
+
+    await redisClient.set('performance_challenge', JSON.stringify(results), 'EX', 60);
 
     return results;
   }

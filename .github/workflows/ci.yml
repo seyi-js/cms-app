@@ -19,6 +19,12 @@ jobs:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
@@ -39,4 +45,6 @@ jobs:
           DB_PORT: 5432
           PORT: 5000
           JWT_SECRET: secret
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
         run: npm run pgdb:migrate && npm run test
